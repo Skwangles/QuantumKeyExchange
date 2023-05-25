@@ -1,41 +1,47 @@
 public class Main {
 
-    private static int[][] transmitterInfos;
-    private static String agreedKeyTransmitter;
-    private static int[][] receiverInfos;
-    private static String agreedKeyReceiver;
+    // Public for testability - not ideal
+    public static int[][] transmitterInfos;
+    public static String agreedKeyTransmitter;
+    public static int[][] receiverInfos;
+    public static String agreedKeyReceiver;
+
+    private static final int VALUE = 1;
+    private static final int POLARIZATION = 0;
 
     public static void main(String[] args){
 
         // Stream of Qubits from one to the other
-        generateReceiverValues(generateTransmitterValues(256));
+        generateReceiverValues(generateTransmitterValues(1024));
 
         //Share polarizations with one another and infer key
         agreedKeyTransmitter = findSharedKey(transmitterInfos, getOnlyPolarizations(receiverInfos));
         agreedKeyReceiver = findSharedKey(receiverInfos, getOnlyPolarizations(transmitterInfos));
 
-        String secretMsg = "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111";
+        String secretMsg = "11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111";
 
         // Encrypt using transmitter's 'key'
         String encryptedMsg = XORciphering.xor(secretMsg, agreedKeyTransmitter);
 
         // Decrypt using receiver's 'key'
-        String unencodedMessage = XORciphering.xor(encryptedMsg, agreedKeyReceiver);
+        String decryptedMessage = XORciphering.xor(encryptedMsg, agreedKeyReceiver);
 
-        System.out.printf("Original: %s, Symmetrically Encrypted: %s, Unencrypted: %s", secretMsg, encryptedMsg, unencodedMessage);
+        System.out.printf("Original: %s, PSK Encrypted: %s, Unencrypted: %s", secretMsg, encryptedMsg, decryptedMessage);
         System.out.println();
+        System.out.println("Shared keys are: " + (agreedKeyReceiver.equals(agreedKeyTransmitter) ? "Equal!" : "Incorrect!"));
         System.out.printf("Transmitter Key: %s, Receiver Key: %s", agreedKeyTransmitter, agreedKeyReceiver);
     }
 
 
     public static Qubit[] generateTransmitterValues(int qubits){
+        if (qubits <= 0) throw new IllegalArgumentException("Input must be atleast 1 qubit");
         transmitterInfos = new int[qubits][2];
         Qubit[] qubitStream = new Qubit[qubits];
         for (int i = 0; i < qubits; i++){
                qubitStream[i] = new Qubit(0, 0);
                int polarization = Math.random() > 0.5 ? 1 : 0;
-               transmitterInfos[i][0] = polarization;
-               transmitterInfos[i][1] = qubitStream[i].measure(polarization);
+               transmitterInfos[i][POLARIZATION] = polarization;
+               transmitterInfos[i][VALUE] = qubitStream[i].measure(polarization);
         }
         return qubitStream;
     }
@@ -44,8 +50,8 @@ public class Main {
         receiverInfos = new int[qubitStream.length][2];
         for (int i = 0; i < qubitStream.length; i++){
             int polarization = Math.random() > 0.5 ? 1 : 0;
-            receiverInfos[i][0] = polarization;
-            receiverInfos[i][1] = qubitStream[i].measure(polarization);
+            receiverInfos[i][POLARIZATION] = polarization;
+            receiverInfos[i][VALUE] = qubitStream[i].measure(polarization);
         }
     }
 
@@ -55,8 +61,8 @@ public class Main {
         String sharedKey = "";
 
         for (int i = 0; i < comparer.length; i++){
-            if(comparer[i][0] == exchangedPolarisation[i]){
-                sharedKey += String.valueOf(comparer[i][1]);
+            if(comparer[i][POLARIZATION] == exchangedPolarisation[i]){
+                sharedKey += String.valueOf(comparer[i][VALUE]);
             }
         }
 
@@ -68,7 +74,7 @@ public class Main {
 
         // Strip away value position
         for (int i = 0; i < privateInfos.length; i++){
-            output[i] = privateInfos[i][0];
+            output[i] = privateInfos[i][POLARIZATION];
         }
 
         return output;
