@@ -32,4 +32,13 @@ public class XORtest {
     public void TestXORLongerKey(){
         Assert.assertEquals("1", XORciphering.xor("1", "010"));
     }
+
+    @Test
+    public void TestXOREncryptsAndDecrypts(){
+        String message = "1111";
+        String key = "010";
+
+        String encrypted = XORciphering.xor(message, key);
+        Assert.assertEquals(message, XORciphering.xor(encrypted, key));
+    }
 }
